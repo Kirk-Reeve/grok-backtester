@@ -1,0 +1,11 @@
+yfinance==0.2.66     # Updated to latest version (Sep 17, 2025) for security and features
+pandas==2.2.3        # Data manipulation
+numpy==2.1.2         # Numerical computations
+matplotlib==3.9.2    # Visualization
+joblib==1.4.2        # Parallelization
+pydantic==2.12.3     # Config validation (updated to latest as of Nov 04, 2025)
+pyyaml==6.0.2        # YAML parsing
+pytest==8.3.3        # Testing
+pytest-mock==3.14.0  # For mocking in tests
+pytest-cov==7.0.0    # Test coverage
+coverage==7.11.0     # Test coverage reporting
