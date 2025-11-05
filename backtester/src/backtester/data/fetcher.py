@@ -8,10 +8,14 @@ from ..utils.helpers import DataError
 logger = setup_logger(__name__)
 
 # Caching setup
-memory = Memory(location='../data/cache', verbose=0)
+memory = Memory(location='backtester/data/cache', verbose=0)
 
 def clear_data_cache() -> None:
-    """Clear the entire data cache."""
+    """Clears the entire data cache.
+
+    This function removes all cached data, forcing subsequent data requests
+    to be fetched from the source again.
+    """
     try:
         memory.clear(warn=False)
         logger.info("Data cache cleared successfully")
@@ -20,7 +24,20 @@ def clear_data_cache() -> None:
 
 @memory.cache
 def _fetch_historical_data_internal(symbols: List[str], start: str, end: str) -> pd.DataFrame:
-    """Internal cached function to fetch historical stock data."""
+    """Internal cached function to fetch historical stock data.
+
+    Args:
+        symbols (List[str]): A list of stock symbols to fetch.
+        start (str): The start date for the data in 'YYYY-MM-DD' format.
+        end (str): The end date for the data in 'YYYY-MM-DD' format.
+
+    Returns:
+        pd.DataFrame: A pandas DataFrame containing the historical data.
+
+    Raises:
+        DataError: If no data is returned from yfinance or if there's an
+                   error during fetching.
+    """
     try:
         data = yf.download(symbols, start=start, end=end, progress=False, auto_adjust=False, actions=True)
         if data.empty:
@@ -32,11 +49,27 @@ def _fetch_historical_data_internal(symbols: List[str], start: str, end: str) ->
         raise DataError(f"Data fetch failed: {e}")
 
 def fetch_historical_data(symbols: List[str], start: str, end: str, force_refresh: bool = False) -> Dict[str, pd.DataFrame]:
-    """
-    Fetch and split historical stock data, with caching.
+    """Fetches and splits historical stock data, with caching.
 
-    This version is defensive about MultiIndex column layouts returned by yfinance or
-    the cache and tries multiple extraction strategies so tests/mocks work reliably.
+    This function retrieves historical stock data for a list of symbols between
+    the specified start and end dates. It uses caching to speed up subsequent
+    requests for the same data. The function is designed to be robust against
+    different column layouts returned by the yfinance library.
+
+    Args:
+        symbols (List[str]): A list of stock symbols to fetch.
+        start (str): The start date for the data in 'YYYY-MM-DD' format.
+        end (str): The end date for the data in 'YYYY-MM-DD' format.
+        force_refresh (bool): If True, the cache will be cleared before fetching data.
+
+    Returns:
+        Dict[str, pd.DataFrame]: A dictionary where keys are stock symbols and
+                                 values are pandas DataFrames containing the
+                                 historical data for each symbol.
+
+    Raises:
+        DataError: If no valid data is fetched for any of the symbols or
+                   if there is an unexpected error.
     """
     if force_refresh:
         clear_data_cache()
@@ -45,7 +78,18 @@ def fetch_historical_data(symbols: List[str], start: str, end: str, force_refres
     required_columns = ['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
 
     def extract_symbol_df(raw: pd.DataFrame, symbol: str) -> pd.DataFrame:
-        """Return a DataFrame for a single symbol, robust to different MultiIndex layouts."""
+        """Returns a DataFrame for a single symbol, robust to different MultiIndex layouts.
+
+        Args:
+            raw (pd.DataFrame): The raw pandas DataFrame, which may have a MultiIndex.
+            symbol (str): The stock symbol to extract.
+
+        Returns:
+            pd.DataFrame: A pandas DataFrame for the specified symbol.
+
+        Raises:
+            KeyError: If the symbol cannot be found in the raw data.
+        """
         # If raw is not multi-indexed, return a copy
         if not isinstance(raw.columns, pd.MultiIndex):
             return raw.copy()
@@ -162,4 +206,3 @@ def fetch_historical_data(symbols: List[str], start: str, end: str, force_refres
     except Exception as e:
         logger.exception("Unexpected error in data fetching")
         raise DataError(f"Unexpected data error: {e}")
-

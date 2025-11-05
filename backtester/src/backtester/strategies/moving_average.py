@@ -8,10 +8,38 @@ from ..utils.helpers import StrategyError
 logger = setup_logger(__name__)
 
 class MovingAverageStrategy(BaseStrategy):
-    """Simple moving average crossover strategy."""
+    """A simple moving average (SMA) crossover trading strategy.
+
+    This strategy generates trading signals based on the crossover of two SMAs
+    with different time windows: a short-term SMA and a long-term SMA. A long
+    signal (1.0) is generated when the short-term SMA crosses above the
+    long-term SMA, and a short signal (-1.0) is generated when it crosses below.
+
+    The parameters for this strategy are:
+        short_window (int): The number of periods for the short-term SMA.
+                            Defaults to 50.
+        long_window (int): The number of periods for the long-term SMA.
+                           Defaults to 200.
+    """
 
     def generate_signals(self, data: pd.DataFrame) -> pd.Series:
-        """Generate signals based on SMA crossover."""
+        """Generates trading signals based on the SMA crossover logic.
+
+        Args:
+            data (pd.DataFrame): A pandas DataFrame containing the historical
+                                 market data for an asset, including an
+                                 'Adj Close' column.
+
+        Returns:
+            pd.Series: A pandas Series with the same index as the input data,
+                       containing the trading signals (1.0 for long, -1.0 for
+                       short).
+
+        Raises:
+            StrategyError: If the input data is missing the 'Adj Close' column
+                           or if an unexpected error occurs during signal
+                           generation.
+        """
         try:
             if 'Adj Close' not in data.columns:
                 raise StrategyError("Data missing 'Adj Close' column")
