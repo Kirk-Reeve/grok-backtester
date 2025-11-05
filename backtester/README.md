@@ -17,8 +17,8 @@ This project is a powerful and flexible backtesting engine for share trading str
 1.  **Clone the repository:**
 
     ```bash
-    git clone https://github.com/your-username/your-repository.git
-    cd your-repository/backtester
+    git clone https://github.com/Kirk-Reeve/grok-backtester.git
+    cd grok-backtester/backtester
     ```
 
 2.  **Create and activate a virtual environment (optional but recommended):**
