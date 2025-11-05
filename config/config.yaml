@@ -2,8 +2,8 @@
 data:
   source: yfinance
   symbols: [AAPL, MSFT]  # Example stocks
-  start_date: 2020-01-01
-  end_date: 2025-11-01
+  start_date: "2020-01-01"
+  end_date: "2025-11-01"
   cache_dir: ../data/cache
 
 strategy:

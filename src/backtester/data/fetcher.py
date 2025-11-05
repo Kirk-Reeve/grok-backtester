@@ -8,7 +8,7 @@ from ..utils.helpers import DataError
 logger = setup_logger(__name__)
 
 # Caching setup
-memory = Memory(location='backtester/data/cache', verbose=0)
+memory = Memory(location='data/cache', verbose=0)
 
 def clear_data_cache() -> None:
     """Clears the entire data cache.
