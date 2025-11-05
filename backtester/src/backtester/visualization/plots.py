@@ -10,16 +10,19 @@ from ..utils.helpers import VisualizationError
 logger = setup_logger(__name__)
 
 def plot_equity_curve(portfolio: pd.DataFrame, title: str = "Equity Curve", save_path: Optional[str] = None, display: bool = False) -> None:
-    """Plot the portfolio's total value over time.
+    """Plots the portfolio's total value over time.
 
     Args:
-        portfolio: DataFrame with 'total' column for portfolio value.
-        title: Plot title (default: "Equity Curve").
-        save_path: Optional file path to save the plot (e.g., 'equity_curve.png').
-        display: If True, show the plot interactively (default: False).
+        portfolio (pd.DataFrame): A pandas DataFrame with a 'total' column
+                                  representing the portfolio value.
+        title (str): The title for the plot. Defaults to "Equity Curve".
+        save_path (Optional[str]): The file path to save the plot to. If None,
+                                   the plot is not saved. Defaults to None.
+        display (bool): If True, the plot is displayed interactively. Defaults
+                        to False.
 
     Raises:
-        ValueError: If required columns are missing.
+        ValueError: If the portfolio DataFrame is missing the 'total' column.
     """
     if 'total' not in portfolio.columns:
         logger.error("Portfolio DataFrame missing 'total' column")
@@ -49,16 +52,18 @@ def plot_equity_curve(portfolio: pd.DataFrame, title: str = "Equity Curve", save
         raise
 
 def plot_drawdown(portfolio: pd.DataFrame, title: str = "Drawdown", save_path: Optional[str] = None, display: bool = False) -> None:
-    """Plot the portfolio drawdown over time.
+    """Plots the portfolio drawdown over time.
 
     Args:
-        portfolio: DataFrame with 'total' column.
-        title: Plot title (default: "Drawdown").
-        save_path: Optional file path to save the plot.
-        display: If True, show the plot interactively (default: False).
+        portfolio (pd.DataFrame): A pandas DataFrame with a 'total' column.
+        title (str): The title for the plot. Defaults to "Drawdown".
+        save_path (Optional[str]): The file path to save the plot to. If None,
+                                   the plot is not saved. Defaults to None.
+        display (bool): If True, the plot is displayed interactively. Defaults
+                        to False.
 
     Raises:
-        ValueError: If required columns are missing.
+        ValueError: If the portfolio DataFrame is missing the 'total' column.
     """
     if 'total' not in portfolio.columns:
         logger.error("Portfolio DataFrame missing 'total' column")
@@ -91,18 +96,23 @@ def plot_drawdown(portfolio: pd.DataFrame, title: str = "Drawdown", save_path: O
         raise
 
 def plot_price_with_signals(data: pd.DataFrame, signals: pd.Series, symbol: str, title: Optional[str] = None, save_path: Optional[str] = None, display: bool = False) -> None:
-    """Plot stock price with buy/sell signals.
+    """Plots the stock price with buy and sell signals.
 
     Args:
-        data: Historical data DataFrame with 'Adj Close' column.
-        signals: Series of positions (1: long, -1: short).
-        symbol: Stock symbol for labeling.
-        title: Plot title (default: f"{symbol} Price with Signals").
-        save_path: Optional file path to save the plot.
-        display: If True, show the plot interactively (default: False).
+        data (pd.DataFrame): A pandas DataFrame with historical market data,
+                             including an 'Adj Close' column.
+        signals (pd.Series): A pandas Series containing the trading signals
+                             (1 for long, -1 for short).
+        symbol (str): The stock symbol for labeling.
+        title (Optional[str]): The title for the plot. Defaults to
+                               f"{symbol} Price with Signals".
+        save_path (Optional[str]): The file path to save the plot to. If None,
+                                   the plot is not saved. Defaults to None.
+        display (bool): If True, the plot is displayed interactively. Defaults
+                        to False.
 
     Raises:
-        ValueError: If required columns are missing.
+        ValueError: If the data DataFrame is missing the 'Adj Close' column.
     """
     if 'Adj Close' not in data.columns:
         logger.error("Data DataFrame missing 'Adj Close' column")
@@ -144,7 +154,25 @@ def plot_price_with_signals(data: pd.DataFrame, signals: pd.Series, symbol: str,
         raise
 
 def generate_backtest_report(results: List[Dict[str, any]], symbols: List[str], data_dict: Dict[str, pd.DataFrame], strategies: List[BaseStrategy], output_dir: str = 'reports', save_plots: bool = True, display_plots: bool = False) -> None:
-    """Generate a full report with plots."""
+    """Generates a full report with plots for a backtest.
+
+    Args:
+        results (List[Dict[str, any]]): A list of backtest result dictionaries.
+        symbols (List[str]): A list of stock symbols.
+        data_dict (Dict[str, pd.DataFrame]): A dictionary of historical data
+                                             DataFrames.
+        strategies (List[BaseStrategy]): A list of strategy instances.
+        output_dir (str): The directory to save the report plots in. Defaults
+                          to 'reports'.
+        save_plots (bool): If True, the plots are saved to the output
+                           directory. Defaults to True.
+        display_plots (bool): If True, the plots are displayed interactively.
+                              Defaults to False.
+
+    Raises:
+        VisualizationError: If the lengths of the input lists do not match or
+                            if an unexpected error occurs.
+    """
     try:
         if len(results) != len(symbols) or len(results) != len(data_dict) or len(results) != len(strategies):
             raise VisualizationError("Input lengths mismatch")

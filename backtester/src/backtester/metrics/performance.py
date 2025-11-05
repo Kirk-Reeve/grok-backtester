@@ -7,7 +7,28 @@ from ..utils.helpers import MetricsError
 logger = setup_logger(__name__)
 
 def calculate_metrics(portfolio: pd.DataFrame) -> Dict[str, float]:
-    """Calculate key performance metrics."""
+    """Calculates key performance metrics for a trading strategy.
+
+    This function takes a portfolio DataFrame, which includes the returns and
+    total value over time, and computes a variety of performance metrics to
+    evaluate the trading strategy's effectiveness.
+
+    Args:
+        portfolio (pd.DataFrame): A pandas DataFrame with a DatetimeIndex,
+                                  containing 'returns' and 'total' columns.
+                                  'returns' are the periodic returns of the
+                                  strategy, and 'total' is the cumulative
+                                  portfolio value.
+
+    Returns:
+        Dict[str, float]: A dictionary containing the calculated performance
+                          metrics, such as Sharpe ratio, CAGR, max drawdown,
+                          and more.
+
+    Raises:
+        MetricsError: If the portfolio DataFrame is missing required columns
+                      or if an unexpected error occurs during calculation.
+    """
     try:
         if 'returns' not in portfolio.columns or 'total' not in portfolio.columns:
             raise MetricsError("Missing required columns in portfolio")
@@ -78,7 +99,15 @@ def calculate_metrics(portfolio: pd.DataFrame) -> Dict[str, float]:
         raise MetricsError(f"Metrics calculation failed: {e}")
 
 def _default_metrics() -> Dict[str, float]:
-    """Return default metrics dict with zeros/NaNs."""
+    """Returns a dictionary with default values for all performance metrics.
+
+    This function is used when there is insufficient data to calculate
+    meaningful metrics, providing a consistent structure for the results.
+
+    Returns:
+        Dict[str, float]: A dictionary of performance metrics initialized to
+                          zero or NaN.
+    """
     return {
         'total_return': 0.0,
         'cagr': 0.0,

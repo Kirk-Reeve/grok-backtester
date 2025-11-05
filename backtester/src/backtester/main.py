@@ -1,5 +1,5 @@
 import yaml
-import argparse  # Standard library for CLI
+import argparse
 from typing import List
 import pandas as pd
 from pydantic import ValidationError
@@ -8,27 +8,27 @@ from .engine.backtest import run_parallel_backtests
 from .visualization.plots import generate_backtest_report
 from .utils.logger import setup_logger
 from .utils.helpers import AppConfig, BacktestError
-from .strategies import STRATEGY_REGISTRY  # For dynamic strategy loading
+from .strategies import STRATEGY_REGISTRY
 
 logger = setup_logger(__name__, file_path='backtest.log')
 
 def load_config(config_path: str) -> AppConfig:
-    """Load and validate YAML config.
+    """Loads and validates the application configuration from a YAML file.
 
     Args:
-        config_path: Path to config file.
+        config_path (str): The path to the configuration file.
 
     Returns:
-        Validated AppConfig instance.
+        AppConfig: A validated application configuration object.
 
     Raises:
-        ValueError: If loading or validation fails.
+        ValueError: If the configuration file is not found, is invalid YAML,
+                    or fails validation.
     """
     try:
         with open(config_path, 'r') as f:
             raw_config = yaml.safe_load(f)
-        
-        # Validate with Pydantic
+
         config = AppConfig(**raw_config)
         logger.info("Configuration loaded and validated successfully")
         return config
@@ -43,7 +43,12 @@ def load_config(config_path: str) -> AppConfig:
         raise ValueError(f"Config validation failed: {e}")
 
 def main() -> None:
-    """Main entry point with CLI arguments."""
+    """The main entry point for the backtester application.
+
+    This function handles command-line argument parsing, loads the
+    configuration, fetches historical data, runs the backtest, and
+    generates a report.
+    """
     parser = argparse.ArgumentParser(description="Advanced Python Share Trading Strategy Backtester")
     parser.add_argument('--config', type=str, default='config/config.yaml', help='Path to config YAML')
     parser.add_argument('--save-plots', action='store_true', default=True, help='Save plots (default: True)')
@@ -82,7 +87,7 @@ def main() -> None:
         logger.info("Backtest completed successfully")
     except BacktestError as e:
         logger.error(f"Backtest failed: {e}")
-        raise  # Re-raise for script exit
+        raise
     except Exception as e:
         logger.error(f"Unexpected failure: {e}")
         raise BacktestError(f"Unexpected error: {e}")

@@ -2,15 +2,21 @@ import logging
 from typing import Optional
 
 def setup_logger(name: str, level: int = logging.INFO, file_path: Optional[str] = None) -> logging.Logger:
-    """Set up a logger with console and optional file output.
+    """Sets up a logger with console and optional file output.
+
+    This function configures a logger that can write messages to both the
+    console and a specified log file. It prevents the addition of duplicate
+    handlers if it is called multiple times for the same logger.
 
     Args:
-        name: Logger name.
-        level: Logging level (default: INFO).
-        file_path: Optional file path for log output.
+        name (str): The name of the logger.
+        level (int): The logging level, e.g., logging.INFO, logging.DEBUG.
+                     Defaults to logging.INFO.
+        file_path (Optional[str]): The optional path to a file where logs
+                                   should be saved. Defaults to None.
 
     Returns:
-        Configured logger instance.
+        logging.Logger: The configured logger instance.
     """
     logger = logging.getLogger(name)
     if logger.hasHandlers():
