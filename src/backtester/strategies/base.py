@@ -1,10 +1,15 @@
+"""Base class for trading strategies."""
+
 from abc import ABC, abstractmethod
-import pandas as pd
-from typing import Dict
-from ..utils.logger import setup_logger
+from typing import Any, Dict
+
+from pandas import DataFrame, Series
+
 from ..utils.helpers import StrategyError
+from ..utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
 
 class BaseStrategy(ABC):
     """Abstract base class for trading strategies.
@@ -14,14 +19,14 @@ class BaseStrategy(ABC):
     which defines the core logic of the strategy.
 
     Attributes:
-        params (Dict[str, any]): A dictionary of parameters for the strategy.
+        params (Dict[str, Any]): A dictionary of parameters for the strategy.
     """
 
-    def __init__(self, params: Dict[str, any]):
+    def __init__(self, params: Dict[str, Any]):
         """Initializes the BaseStrategy.
 
         Args:
-            params (Dict[str, any]): A dictionary of parameters for configuring
+            params (Dict[str, Any]): A dictionary of parameters for configuring
                                      the strategy.
 
         Raises:
@@ -29,13 +34,17 @@ class BaseStrategy(ABC):
         """
         try:
             self.params = params
-            logger.debug(f"Initialized {self.__class__.__name__} with params: {params}")
-        except Exception as e:
-            logger.error(f"Error initializing strategy: {e}")
-            raise StrategyError(f"Strategy initialization failed: {e}")
+            logger.debug(
+                "Initialized %s{self.__class__.__name__} with params: %s{params}",
+                self.__class__.__name__,
+                params,
+            )
+        except Exception as error:
+            logger.error("Error initializing strategy: %s", error)
+            raise StrategyError(f"Strategy initialization failed: {error}") from error
 
     @abstractmethod
-    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
+    def generate_signals(self, data: DataFrame) -> Series:
         """Generates target position signals based on market data.
 
         This method must be implemented by all subclasses. It should take a
@@ -44,11 +53,10 @@ class BaseStrategy(ABC):
         0 for neutral).
 
         Args:
-            data (pd.DataFrame): A pandas DataFrame containing the historical
+            data (DataFrame): A pandas DataFrame containing the historical
                                  market data for an asset.
 
         Returns:
-            pd.Series: A pandas Series with the same index as the input data,
+            Series: A pandas Series with the same index as the input data,
                        containing the trading signals.
         """
-        pass

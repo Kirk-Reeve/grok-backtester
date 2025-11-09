@@ -1,16 +1,27 @@
-import pandas as pd
-import numpy as np
-from typing import Dict, List
-from joblib import Parallel, delayed
-from ..strategies.base import BaseStrategy
-from ..strategies import STRATEGY_REGISTRY
-from ..utils.logger import setup_logger
+"""Backtesting engine for simulating trading strategies on historical data."""
+
+from typing import Any, Dict, List
+
+from joblib import Parallel, delayed  # type: ignore[import-untyped]
+from numpy import abs as _abs
+from pandas import DataFrame
+
 from ..metrics.performance import calculate_metrics
+from ..strategies import STRATEGY_REGISTRY
+from ..strategies.base import BaseStrategy
 from ..utils.helpers import EngineError
+from ..utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-def run_backtest(data: pd.DataFrame, strategy: BaseStrategy, initial_capital: float, commission: float, slippage: float) -> Dict[str, any]:
+
+def run_backtest(
+    data: DataFrame,
+    strategy: BaseStrategy,
+    initial_capital: float,
+    commission: float,
+    slippage: float,
+) -> Dict[str, Any]:
     """Runs a backtest for a single symbol using vectorized operations.
 
     This function simulates a trading strategy on historical data for a single
@@ -29,7 +40,7 @@ def run_backtest(data: pd.DataFrame, strategy: BaseStrategy, initial_capital: fl
                           value.
 
     Returns:
-        Dict[str, any]: A dictionary containing the backtest results, including
+        Dict[str, Any]: A dictionary containing the backtest results, including
                         the 'portfolio' DataFrame and a 'metrics' dictionary.
 
     Raises:
@@ -37,47 +48,54 @@ def run_backtest(data: pd.DataFrame, strategy: BaseStrategy, initial_capital: fl
                      unexpected error occurs during the backtest.
     """
     try:
-        if 'Adj Close' not in data.columns or len(data) < 2:
+        if "Adj Close" not in data.columns or len(data) < 2:
             raise EngineError("Insufficient or invalid data for backtest")
 
-        logger.info(f"Starting backtest for {len(data)} days")
+        logger.info("Starting backtest for %s days", len(data))
 
         signals = strategy.generate_signals(data)
 
         positions = signals.shift(1).fillna(0)
-        asset_returns = data['Adj Close'].pct_change().fillna(0)
+        asset_returns = data["Adj Close"].pct_change().fillna(0)
         strategy_returns = positions * asset_returns
 
         position_diff = signals.diff().fillna(0)
-        traded_fraction = np.abs(position_diff)
+        traded_fraction = _abs(position_diff)
 
         transaction_costs = (commission + slippage) * traded_fraction
         net_returns = strategy_returns - transaction_costs
 
-        portfolio = pd.DataFrame(index=data.index)
-        portfolio['returns'] = net_returns
-        portfolio['total'] = initial_capital * (1 + net_returns).cumprod()
-        portfolio['holdings'] = positions * portfolio['total']
-        portfolio['cash'] = portfolio['total'] - portfolio['holdings']
+        portfolio = DataFrame(index=data.index)
+        portfolio["returns"] = net_returns
+        portfolio["total"] = initial_capital * (1 + net_returns).cumprod()
+        portfolio["holdings"] = positions * portfolio["total"]
+        portfolio["cash"] = portfolio["total"] - portfolio["holdings"]
 
         metrics = calculate_metrics(portfolio)
-        logger.info(f"Backtest completed: final value {portfolio['total'].iloc[-1]:.2f}, Sharpe {metrics['sharpe_ratio']:.2f}")
-        return {'portfolio': portfolio, 'metrics': metrics}
-    except EngineError as e:
-        logger.error(f"Engine error: {e}")
+        logger.info(
+            "Backtest completed: final value %.2f, Sharpe %.2f",
+            portfolio["total"].iloc[-1],
+            metrics["sharpe_ratio"],
+        )
+        return {"portfolio": portfolio, "metrics": metrics}
+    except EngineError as error:
+        logger.error("Engine error: %s", error)
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in backtest: {e}")
-        raise EngineError(f"Backtest failed: {e}")
+    except Exception as error:
+        logger.error("Unexpected error in backtest: %s", error)
+        raise EngineError(f"Backtest failed: {error}") from error
 
-def run_parallel_backtests(datas: List[pd.DataFrame], strategy_config: Dict, backtest_config: Dict) -> List[Dict]:
+
+def run_parallel_backtests(
+    datas: List[DataFrame], strategy_config: Dict, backtest_config: Dict
+) -> List[Dict]:
     """Runs backtests in parallel for multiple symbols.
 
     This function orchestrates the execution of backtests for multiple symbols,
     potentially in parallel, to improve performance.
 
     Args:
-        datas (List[pd.DataFrame]): A list of pandas DataFrames, where each
+        datas (List[DataFrame]): A list of pandas DataFrames, where each
                                      DataFrame contains the historical market
                                      data for a single symbol.
         strategy_config (Dict): A dictionary containing the configuration for
@@ -96,32 +114,49 @@ def run_parallel_backtests(datas: List[pd.DataFrame], strategy_config: Dict, bac
                      occurs during the parallel backtest execution.
     """
     try:
-        strategy_type = strategy_config.get('type')
+        strategy_type: str = strategy_config.get("type", "")
         strategy_class = STRATEGY_REGISTRY.get(strategy_type)
         if not strategy_class:
             raise EngineError(f"Invalid strategy type: {strategy_type}")
 
-        strategy_params = strategy_config.get('params', {})
+        strategy_params = strategy_config.get("params", {})
         strategies = [strategy_class(strategy_params) for _ in datas]
 
-        logger.info(f"Running backtests for {len(datas)} symbols (parallel: {backtest_config['parallel']})")
+        logger.info(
+            "Running backtests for %s symbols (parallel: %s)",
+            len(datas),
+            backtest_config["parallel"],
+        )
 
-        if backtest_config['parallel']:
+        if backtest_config["parallel"]:
             results = Parallel(n_jobs=-1)(
                 delayed(run_backtest)(
-                    data, strat, backtest_config['initial_capital'], backtest_config['commission'], backtest_config['slippage']
-                ) for data, strat in zip(datas, strategies)
+                    data,
+                    strategy,
+                    backtest_config["initial_capital"],
+                    backtest_config["commission"],
+                    backtest_config["slippage"],
+                )
+                for data, strategy in zip(datas, strategies)
             )
         else:
             results = []
-            for data, strat in zip(datas, strategies):
-                results.append(run_backtest(data, strat, backtest_config['initial_capital'], backtest_config['commission'], backtest_config['slippage']))
+            for data, strategy in zip(datas, strategies):
+                results.append(
+                    run_backtest(
+                        data,
+                        strategy,
+                        backtest_config["initial_capital"],
+                        backtest_config["commission"],
+                        backtest_config["slippage"],
+                    )
+                )
 
         logger.info("All backtests completed")
         return results
-    except EngineError as e:
-        logger.error(f"Engine error in parallel backtests: {e}")
+    except EngineError as error:
+        logger.error("Engine error in parallel backtests: %s", error)
         raise
-    except Exception as e:
-        logger.error(f"Unexpected error in parallel backtests: {e}")
-        raise EngineError(f"Parallel backtests failed: {e}")
+    except Exception as error:
+        logger.error("Unexpected error in parallel backtests: %s", error)
+        raise EngineError(f"Parallel backtests failed: {error}") from error

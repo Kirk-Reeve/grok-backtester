@@ -1,7 +1,12 @@
-import logging
+"""Utility functions for logging configuration."""
+
+from logging import INFO, FileHandler, Formatter, Logger, StreamHandler, getLogger
 from typing import Optional
 
-def setup_logger(name: str, level: int = logging.INFO, file_path: Optional[str] = None) -> logging.Logger:
+
+def setup_logger(
+    name: str, level: int = INFO, file_path: Optional[str] = None
+) -> Logger:
     """Sets up a logger with console and optional file output.
 
     This function configures a logger that can write messages to both the
@@ -10,35 +15,35 @@ def setup_logger(name: str, level: int = logging.INFO, file_path: Optional[str] 
 
     Args:
         name (str): The name of the logger.
-        level (int): The logging level, e.g., logging.INFO, logging.DEBUG.
-                     Defaults to logging.INFO.
+        level (int): The logging level, e.g., INFO, DEBUG.
+                     Defaults to INFO.
         file_path (Optional[str]): The optional path to a file where logs
                                    should be saved. Defaults to None.
 
     Returns:
-        logging.Logger: The configured logger instance.
+        Logger: The configured logger instance.
     """
-    logger = logging.getLogger(name)
+    logger = getLogger(name)
     if logger.hasHandlers():
         return logger  # Avoid duplicate handlers if called multiple times
 
     logger.setLevel(level)
 
     # Console handler
-    console_handler = logging.StreamHandler()
+    console_handler = StreamHandler()
     console_handler.setLevel(level)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
     # File handler if specified
     if file_path:
         try:
-            file_handler = logging.FileHandler(file_path)
+            file_handler = FileHandler(file_path)
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)
-        except IOError as e:
-            logger.warning(f"Failed to set up file logging at {file_path}: {e}")
+        except IOError as error:
+            logger.warning("Failed to set up file logging at %s: %s", file_path, error)
 
     return logger

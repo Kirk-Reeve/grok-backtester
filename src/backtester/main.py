@@ -1,16 +1,22 @@
-import yaml
+"""Main module for the Python share trading strategy backtester."""
+
 import argparse
+from pathlib import Path
 from typing import List
+
 import pandas as pd
+import yaml
 from pydantic import ValidationError
+
 from .data.fetcher import fetch_historical_data
 from .engine.backtest import run_parallel_backtests
-from .visualization.plots import generate_backtest_report
-from .utils.logger import setup_logger
-from .utils.helpers import AppConfig, BacktestError
 from .strategies import STRATEGY_REGISTRY
+from .utils.helpers import AppConfig, BacktestError, open_no_symlink
+from .utils.logger import setup_logger
+from .visualization.plots import generate_backtest_report
 
-logger = setup_logger(__name__, file_path='backtest.log')
+logger = setup_logger(__name__, file_path="backtest.log")
+
 
 def load_config(config_path: str) -> AppConfig:
     """Loads and validates the application configuration from a YAML file.
@@ -26,21 +32,22 @@ def load_config(config_path: str) -> AppConfig:
                     or fails validation.
     """
     try:
-        with open(config_path, 'r') as f:
-            raw_config = yaml.safe_load(f)
+        with open_no_symlink(Path(config_path)) as file:
+            raw_config = yaml.safe_load(file)
 
         config = AppConfig(**raw_config)
         logger.info("Configuration loaded and validated successfully")
         return config
-    except FileNotFoundError as e:
-        logger.error(f"Config file not found: {config_path}")
-        raise ValueError(f"Config file not found: {e}")
-    except yaml.YAMLError as e:
-        logger.error(f"Invalid YAML in config: {e}")
-        raise ValueError(f"Invalid YAML: {e}")
-    except ValidationError as e:
-        logger.error(f"Config validation failed: {e}")
-        raise ValueError(f"Config validation failed: {e}")
+    except FileNotFoundError as error:
+        logger.error("Config file not found: %s", config_path)
+        raise ValueError(f"Config file not found: {error}") from error
+    except yaml.YAMLError as error:
+        logger.error("Invalid YAML in config: %s", error)
+        raise ValueError(f"Invalid YAML: {error}") from error
+    except ValidationError as error:
+        logger.error("Config validation failed: %s", error)
+        raise ValueError(f"Config validation failed: {error}") from error
+
 
 def main() -> None:
     """The main entry point for the backtester application.
@@ -49,14 +56,38 @@ def main() -> None:
     configuration, fetches historical data, runs the backtest, and
     generates a report.
     """
-    parser = argparse.ArgumentParser(description="Advanced Python Share Trading Strategy Backtester")
-    parser.add_argument('--config', type=str, default='config/config.yaml', help='Path to config YAML')
-    parser.add_argument('--save-plots', action='store_true', default=True, help='Save plots (default: True)')
-    parser.add_argument('--no-save-plots', dest='save_plots', action='store_false', help='Do not save plots')
-    parser.add_argument('--display-plots', action='store_true', default=False, help='Display plots (default: False)')
+    parser = argparse.ArgumentParser(
+        description="Advanced Python Share Trading Strategy Backtester"
+    )
+    parser.add_argument(
+        "--config", type=str, default="config/config.yaml", help="Path to config YAML"
+    )
+    parser.add_argument(
+        "--save-plots",
+        action="store_true",
+        default=True,
+        help="Save plots (default: True)",
+    )
+    parser.add_argument(
+        "--no-save-plots",
+        dest="save_plots",
+        action="store_false",
+        help="Do not save plots",
+    )
+    parser.add_argument(
+        "--display-plots",
+        action="store_true",
+        default=False,
+        help="Display plots (default: False)",
+    )
     args = parser.parse_args()
 
-    logger.info(f"CLI args: config={args.config}, save_plots={args.save_plots}, display_plots={args.display_plots}")
+    logger.info(
+        "CLI args: config=%s, save_plots=%s, display_plots=%s",
+        args.config,
+        args.save_plots,
+        args.display_plots,
+    )
 
     try:
         config = load_config(args.config)
@@ -64,33 +95,47 @@ def main() -> None:
         strategy_config = config.strategy
         backtest_config = config.backtest
 
-        data_dict = fetch_historical_data(data_config.symbols, data_config.start_date, data_config.end_date)
+        historical_data = fetch_historical_data(
+            data_config.symbols, data_config.start_date, data_config.end_date
+        )
 
-        available_symbols = [sym for sym in data_config.symbols if sym in data_dict]
+        available_symbols = [
+            symbol for symbol in data_config.symbols if symbol in historical_data
+        ]
         if not available_symbols:
             raise BacktestError("No available symbols after fetching")
 
-        datas: List[pd.DataFrame] = [data_dict[sym] for sym in available_symbols]
+        datas: List[pd.DataFrame] = [
+            historical_data[symbol] for symbol in available_symbols
+        ]
 
         strategy_class = STRATEGY_REGISTRY.get(strategy_config.type)
         if not strategy_class:
             raise BacktestError(f"Strategy type '{strategy_config.type}' not found")
         strategies = [strategy_class(strategy_config.params) for _ in datas]
 
-        results = run_parallel_backtests(datas, strategy_config.dict(), backtest_config.dict())
+        results = run_parallel_backtests(
+            datas, strategy_config.model_dump(), backtest_config.model_dump()
+        )
 
         generate_backtest_report(
-            results, available_symbols, {sym: data_dict[sym] for sym in available_symbols}, strategies,
-            output_dir='../reports', save_plots=args.save_plots, display_plots=args.display_plots
+            results,
+            available_symbols,
+            {symbol: historical_data[symbol] for symbol in available_symbols},
+            strategies,
+            output_dir="../reports",
+            save_plots=args.save_plots,
+            display_plots=args.display_plots,
         )
 
         logger.info("Backtest completed successfully")
-    except BacktestError as e:
-        logger.error(f"Backtest failed: {e}")
+    except BacktestError as error:
+        logger.error("Backtest failed: %s", error)
         raise
-    except Exception as e:
-        logger.error(f"Unexpected failure: {e}")
-        raise BacktestError(f"Unexpected error: {e}")
+    except Exception as error:
+        logger.error("Unexpected failure: %s", error)
+        raise BacktestError(f"Unexpected error: {error}") from error
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

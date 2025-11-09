@@ -1,9 +1,16 @@
-from typing import List, Dict, Any
-from pydantic import BaseModel, field_validator, Field
+"""Helper functions and classes for the backtester application."""
+
+import os
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List
+
+from pydantic import BaseModel, Field, field_validator
+
 from ..utils.logger import setup_logger
 
 logger = setup_logger(__name__)
+
 
 class DataConfig(BaseModel):
     """Configuration for data fetching.
@@ -15,13 +22,14 @@ class DataConfig(BaseModel):
         end_date (str): The end date for the data in 'YYYY-MM-DD' format.
         cache_dir (str): The directory to cache the data in.
     """
+
     source: str
     symbols: List[str]
     start_date: str
     end_date: str
     cache_dir: str
 
-    @field_validator('start_date', 'end_date', mode='before')
+    @field_validator("start_date", "end_date", mode="before")
     @classmethod
     def validate_date_format(cls, v: str) -> str:
         """Validates that date strings are in 'YYYY-MM-DD' format.
@@ -36,10 +44,13 @@ class DataConfig(BaseModel):
             ValueError: If the date string is not in the correct format.
         """
         try:
-            datetime.strptime(v, '%Y-%m-%d')
+            datetime.strptime(v, "%Y-%m-%d")
             return v
-        except ValueError:
-            raise ValueError(f"Invalid date format: {v}. Must be YYYY-MM-DD.")
+        except ValueError as error:
+            raise ValueError(
+                f"Invalid date format: {v}. Must be YYYY-MM-DD."
+            ) from error
+
 
 class StrategyConfig(BaseModel):
     """Configuration for the trading strategy.
@@ -48,8 +59,10 @@ class StrategyConfig(BaseModel):
         type (str): The type of the strategy to use (e.g., 'moving_average').
         params (Dict[str, Any]): A dictionary of parameters for the strategy.
     """
+
     type: str
     params: Dict[str, Any]
+
 
 class BacktestConfig(BaseModel):
     """Configuration for the backtest engine.
@@ -60,10 +73,12 @@ class BacktestConfig(BaseModel):
         slippage (float): The slippage per trade.
         parallel (bool): Whether to run backtests in parallel.
     """
+
     initial_capital: float
     commission: float = Field(..., ge=0.0)
     slippage: float = Field(0.0, ge=0.0)
     parallel: bool
+
 
 class AppConfig(BaseModel):
     """Root configuration for the backtester application.
@@ -73,30 +88,65 @@ class AppConfig(BaseModel):
         strategy (StrategyConfig): The trading strategy configuration.
         backtest (BacktestConfig): The backtest engine configuration.
     """
+
     data: DataConfig
     strategy: StrategyConfig
     backtest: BacktestConfig
 
+
 class BacktestError(Exception):
     """Base exception for all custom errors in the backtester application."""
-    pass
+
 
 class DataError(BacktestError):
     """Exception raised for errors related to data fetching or processing."""
-    pass
+
 
 class StrategyError(BacktestError):
     """Exception raised for errors related to trading strategy logic."""
-    pass
+
 
 class EngineError(BacktestError):
     """Exception raised for errors within the backtesting engine."""
-    pass
+
 
 class MetricsError(BacktestError):
     """Exception raised for errors during performance metrics calculation."""
-    pass
+
 
 class VisualizationError(BacktestError):
     """Exception raised for errors during results visualization."""
-    pass
+
+
+def open_no_symlink(path: Path):
+    """Safely open a file for reading without following symbolic links.
+
+    This function opens the file located at the given path in read-only mode,
+    explicitly preventing symlink traversal on systems that support the
+    `O_NOFOLLOW` flag. It returns a text-mode file object with UTF-8 encoding.
+    If the file cannot be opened safely (e.g., if it's a symlink or inaccessible),
+    an exception is raised.
+
+    Args:
+        path (Path): The path to the file to open. Must point to a regular file
+            that is not a symbolic link.
+
+    Returns:
+        TextIOWrapper: A file object opened in read-only text mode with UTF-8 encoding.
+
+    Raises:
+        FileNotFoundError: If the specified file does not exist.
+        PermissionError: If the process lacks permission to read the file.
+        OSError: If opening the file fails for any other OS-level reason, including
+            attempting to open a symlink when `O_NOFOLLOW` is enforced.
+    """
+    flags = os.O_RDONLY
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    fd = os.open(str(path), flags)
+    try:
+        # wrap fd with text mode and explicit encoding
+        return os.fdopen(fd, "r", encoding="utf-8")
+    except Exception:
+        os.close(fd)
+        raise

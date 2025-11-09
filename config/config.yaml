@@ -7,11 +7,30 @@ data:
   cache_dir: ../data/cache
 
 strategy:
-  type: moving_average
+  type: moving_average # or 'rsi', 'macd'
   params:
     short_window: 50
     long_window: 200
 
+# strategy: 
+#   type: momentum
+#   params:
+#     lookback: 20
+#     buy_threshold: 0.05
+#     sell_threshold: -0.05
+
+#   strategy: 
+#   type: mean_reversion
+#   params:
+#     window: 20
+#     threshold: 2.0
+
+# strategy: 
+# type: bollinger_bands
+# params:
+#   window: 20
+#   std_multiplier: 2.0
+  
 backtest:
   initial_capital: 100000
   commission: 0.001  # 0.1% per trade (of traded amount)
