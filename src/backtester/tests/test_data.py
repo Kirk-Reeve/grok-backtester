@@ -1,6 +1,8 @@
-import numpy as np
-import pandas as pd
-import pytest
+"""Tests for data fetching and caching functionality."""
+
+from numpy import random
+from pandas import DataFrame, MultiIndex, date_range
+from pytest import raises
 
 from backtester.data.fetcher import clear_data_cache, fetch_historical_data
 from backtester.utils.helpers import DataError
@@ -9,7 +11,7 @@ from backtester.utils.helpers import DataError
 def test_fetch_historical_data(mocker):
     """Test fetching historical data with mocking."""
     mock_download = mocker.patch("backtester.data.fetcher.yf.download")
-    mock_data = pd.DataFrame(
+    mock_data = DataFrame(
         {
             "Open": [99, 100],
             "High": [101, 102],
@@ -18,14 +20,14 @@ def test_fetch_historical_data(mocker):
             "Adj Close": [100, 101],
             "Volume": [1000, 1100],
         },
-        index=pd.date_range("2020-01-02", periods=2),
+        index=date_range("2020-01-02", periods=2),
     )
     mock_download.return_value = mock_data
 
     data_dict = fetch_historical_data(["AAPL"], "2020-01-01", "2020-01-03")
 
     assert "AAPL" in data_dict
-    assert isinstance(data_dict["AAPL"], pd.DataFrame)
+    assert isinstance(data_dict["AAPL"], DataFrame)
     assert set(["Open", "High", "Low", "Close", "Adj Close", "Volume"]) <= set(
         data_dict["AAPL"].columns
     )
@@ -35,7 +37,7 @@ def test_fetch_historical_data(mocker):
 def test_fetch_historical_data_multi(mocker):
     """Test multi-symbol fetching."""
     mock_download = mocker.patch("backtester.data.fetcher.yf.download")
-    columns = pd.MultiIndex.from_product(
+    columns = MultiIndex.from_product(
         [
             [
                 "Open",
@@ -50,9 +52,9 @@ def test_fetch_historical_data_multi(mocker):
             ["AAPL", "MSFT"],
         ]
     )
-    mock_data = pd.DataFrame(
-        np.random.rand(2, 16),
-        index=pd.date_range("2020-01-02", periods=2),
+    mock_data = DataFrame(
+        random.rand(2, 16),
+        index=date_range("2020-01-02", periods=2),
         columns=columns,
     )
     mock_download.return_value = mock_data
@@ -69,9 +71,9 @@ def test_fetch_historical_data_multi(mocker):
 def test_fetch_historical_data_empty(mocker):
     """Test empty data raises error."""
     mock_download = mocker.patch("backtester.data.fetcher.yf.download")
-    mock_download.return_value = pd.DataFrame()
+    mock_download.return_value = DataFrame()
 
-    with pytest.raises(DataError, match="No data returned"):
+    with raises(DataError, match="No data returned"):
         fetch_historical_data(["INVALID"], "2020-01-01", "2020-01-03")
 
 
@@ -79,7 +81,7 @@ def test_fetch_historical_data_force_refresh(mocker):
     """Test force refresh clears cache."""
     mock_clear = mocker.patch("backtester.data.fetcher.clear_data_cache")
     mock_download = mocker.patch("backtester.data.fetcher.yf.download")
-    mock_data = pd.DataFrame(
+    mock_data = DataFrame(
         {
             "Open": [99],
             "High": [101],
@@ -90,7 +92,7 @@ def test_fetch_historical_data_force_refresh(mocker):
             "Dividends": [0],
             "Stock Splits": [0],
         },
-        index=pd.date_range("2020-01-02", periods=1),
+        index=date_range("2020-01-02", periods=1),
     )
     mock_download.return_value = mock_data
 

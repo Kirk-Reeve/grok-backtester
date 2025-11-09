@@ -6,11 +6,17 @@ data:
   end_date: "2025-11-01"
   cache_dir: ../data/cache
 
-strategy:
-  type: moving_average # or 'rsi', 'macd'
-  params:
-    short_window: 50
-    long_window: 200
+backtest:
+  initial_capital: 100000
+  commission: 0.001  # 0.1% per trade (of traded amount)
+  slippage: 0.0005  # 0.05% slippage per trade
+  parallel: true  # Use parallel processing for multiple symbols
+
+# strategy:
+#   type: moving_average
+#   params:
+#     short_window: 50
+#     long_window: 200
 
 # strategy: 
 #   type: momentum
@@ -19,20 +25,28 @@ strategy:
 #     buy_threshold: 0.05
 #     sell_threshold: -0.05
 
-#   strategy: 
+# strategy: 
 #   type: mean_reversion
 #   params:
 #     window: 20
 #     threshold: 2.0
 
 # strategy: 
-# type: bollinger_bands
-# params:
-#   window: 20
-#   std_multiplier: 2.0
-  
-backtest:
-  initial_capital: 100000
-  commission: 0.001  # 0.1% per trade (of traded amount)
-  slippage: 0.0005  # 0.05% slippage per trade
-  parallel: true  # Use parallel processing for multiple symbols
+#   type: bollinger_bands
+#   params:
+#     window: 20
+#     std_multiplier: 2.0
+
+# strategy: 
+#   type: rsi
+#   params:
+#     period: 14
+#     overbought: 70
+#     oversold: 30
+
+# strategy: 
+#   type: macd
+#   params:
+#     fast_period: 12
+#     slow_period: 26
+#     signal_period: 9

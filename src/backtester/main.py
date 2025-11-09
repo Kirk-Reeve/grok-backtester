@@ -123,7 +123,7 @@ def main() -> None:
             available_symbols,
             {symbol: historical_data[symbol] for symbol in available_symbols},
             strategies,
-            output_dir="../reports",
+            output_dir="reports",
             save_plots=args.save_plots,
             display_plots=args.display_plots,
         )

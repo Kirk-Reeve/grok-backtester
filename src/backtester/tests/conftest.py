@@ -1,12 +1,14 @@
-import pandas as pd
-import pytest
+"""Conftest file for backtester tests."""
+
+from pandas import DataFrame, date_range
+from pytest import fixture
 
 
-@pytest.fixture
+@fixture
 def sample_data():
     """Fixture for sample historical data DataFrame."""
-    dates = pd.date_range("2020-01-01", periods=5)
-    data = pd.DataFrame(
+    dates = date_range("2020-01-01", periods=5)
+    data = DataFrame(
         {
             "Open": [100, 101, 102, 103, 104],
             "High": [105, 106, 107, 108, 109],
@@ -20,11 +22,11 @@ def sample_data():
     return data
 
 
-@pytest.fixture
+@fixture
 def sample_portfolio():
     """Fixture for sample portfolio DataFrame."""
-    dates = pd.date_range("2020-01-01", periods=5)
-    portfolio = pd.DataFrame(
+    dates = date_range("2020-01-01", periods=5)
+    portfolio = DataFrame(
         {
             "returns": [0.01, -0.005, 0.02, 0.015, -0.01],
             "total": [100000, 100995, 100490, 102499, 104036],  # Fixed: 5 values

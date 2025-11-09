@@ -2,6 +2,7 @@
 
 import os
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -150,3 +151,31 @@ def open_no_symlink(path: Path):
     except Exception:
         os.close(fd)
         raise
+
+
+@lru_cache(maxsize=1)
+def get_project_root() -> Path:
+    """Get the absolute path to the project root directory.
+
+    This resolves from the current module's location, assuming standard structure:
+    grok-backtester/
+    ├── src/
+    │   └── backtester/
+    │       └── utils/
+    │           └── helpers.py
+    Adjust .parent count if your structure differs.
+
+    Returns:
+        Path: Absolute path to project root.
+
+    Raises:
+        ValueError: If resolution fails (e.g., frozen executable).
+    """
+    try:
+        # __file__ is the current file; resolve to absolute, go up 3 levels (utils -> backtester -> src -> root)
+        root = Path(__file__).resolve().parent.parent.parent.parent
+        if not root.exists() or not (root / "README.md").exists():
+            raise ValueError("Project root detection failed; adjust parent levels.")
+        return root
+    except NameError:
+        return Path(os.getcwd()).resolve()

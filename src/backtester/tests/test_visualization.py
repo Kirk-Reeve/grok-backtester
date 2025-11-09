@@ -1,10 +1,10 @@
 """Tests for visualization plots."""
 
-import matplotlib
+from matplotlib import use
 
 from backtester.visualization.plots import plot_drawdown, plot_equity_curve
 
-matplotlib.use("Agg")  # Set non-interactive backend for tests
+use("Agg")  # Set non-interactive backend for tests
 
 
 def test_plot_equity_curve(mocker, sample_portfolio):

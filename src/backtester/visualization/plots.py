@@ -1,5 +1,6 @@
 """Visualization functions for backtesting results."""
 
+from os.path import abspath
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -7,7 +8,7 @@ from matplotlib.pyplot import close, savefig, show, subplots
 from pandas import DataFrame, Series
 
 from ..strategies.base import BaseStrategy
-from ..utils.helpers import VisualizationError
+from ..utils.helpers import VisualizationError, get_project_root
 from ..utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -49,9 +50,10 @@ def plot_equity_curve(
         axes.grid(True)
 
         if save_path:
+            abs_path = abspath(save_path)
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             savefig(save_path)
-            logger.info("Equity curve saved to %s", save_path)
+            logger.info("Equity curve saved to: %s", abs_path)
 
         if display:
             show()
@@ -99,9 +101,10 @@ def plot_drawdown(
         axes.grid(True)
 
         if save_path:
+            abs_path = abspath(save_path)
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             savefig(save_path)
-            logger.info("Drawdown plot saved to %s", save_path)
+            logger.info("Drawdown plot saved to %s", abs_path)
 
         if display:
             show()
@@ -179,9 +182,10 @@ def plot_price_with_signals(
         axes.grid(True)
 
         if save_path:
+            abs_path = abspath(save_path)
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             savefig(save_path)
-            logger.info("Price with signals plot saved to %s", save_path)
+            logger.info("Price with signals plot saved to %s", abs_path)
 
         if display:
             show()
@@ -222,6 +226,9 @@ def generate_backtest_report(
                             if an unexpected error occurs.
     """
     try:
+        project_root = get_project_root()
+        abs_output_dir = project_root / output_dir / strategies[0].__class__.__name__
+
         if (
             len(results) != len(symbols)
             or len(results) != len(data_dict)
@@ -229,7 +236,7 @@ def generate_backtest_report(
         ):
             raise VisualizationError("Input lengths mismatch")
 
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        abs_output_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Generating report for %s symbols in %s", len(symbols), output_dir)
 
         for _, (result, symbol, data, strategy) in enumerate(
@@ -240,12 +247,16 @@ def generate_backtest_report(
             signals = strategy.generate_signals(data)
 
             equity_path = (
-                f"{output_dir}/{symbol}_equity_curve.png" if save_plots else None
+                str(abs_output_dir / f"{symbol}_equity_curve.png")
+                if save_plots
+                else None
             )
             drawdown_path = (
-                f"{output_dir}/{symbol}_drawdown.png" if save_plots else None
+                str(abs_output_dir / f"{symbol}_drawdown.png") if save_plots else None
             )
-            signals_path = f"{output_dir}/{symbol}_signals.png" if save_plots else None
+            signals_path = (
+                str(abs_output_dir / f"{symbol}_signals.png") if save_plots else None
+            )
 
             plot_equity_curve(
                 portfolio,
