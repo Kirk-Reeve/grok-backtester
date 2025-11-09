@@ -8,7 +8,7 @@ from pandas import DataFrame
 from ..utils.helpers import MetricsError
 from ..utils.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, file_path="performance_metrics.log")
 
 
 def calculate_metrics(portfolio: DataFrame) -> Dict[str, float]:
@@ -106,7 +106,7 @@ def calculate_metrics(portfolio: DataFrame) -> Dict[str, float]:
             "profit_factor": profit_factor,
         }
 
-        logger.debug("Metrics calculated: %s", metrics)
+        logger.info("Metrics calculated: %s", metrics)
         return metrics
     except MetricsError as error:
         logger.error("Metrics error: %s", error)

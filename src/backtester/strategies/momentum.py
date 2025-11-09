@@ -8,8 +8,6 @@ from pandas import DataFrame, Series
 from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
-logger = setup_logger(__name__)
-
 
 class MomentumStrategy(BaseStrategy):
     """
@@ -32,6 +30,7 @@ class MomentumStrategy(BaseStrategy):
         :param params: Dictionary of strategy parameters.
         """
         super().__init__(params or {})
+        self.logger = setup_logger(__name__, file_path="momentum_strategy.log")
         self.lookback: int = self.params.get("lookback", 20)
         self.buy_threshold: float = self.params.get("buy_threshold", 0.05)
         self.sell_threshold: float = self.params.get("sell_threshold", -0.05)
@@ -39,7 +38,7 @@ class MomentumStrategy(BaseStrategy):
             raise ValueError("Lookback period must be positive.")
         if self.sell_threshold >= self.buy_threshold:
             raise ValueError("Sell threshold must be less than buy threshold.")
-        logger.info(
+        self.logger.debug(
             "Initialized Momentum with lookback=%s, buy_threshold=%s, sell_threshold=%s",
             self.lookback,
             self.buy_threshold,
@@ -65,7 +64,7 @@ class MomentumStrategy(BaseStrategy):
 
         signals_series = Series(signals, index=data.index)
 
-        logger.debug(
+        self.logger.debug(
             "Generated %s signals for %s to %s",
             len(signals_series),
             data.index[0],

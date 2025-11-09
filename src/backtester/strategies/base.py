@@ -8,7 +8,7 @@ from pandas import DataFrame, Series
 from ..utils.helpers import StrategyError
 from ..utils.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, file_path="strategy_base.log")
 
 
 class BaseStrategy(ABC):

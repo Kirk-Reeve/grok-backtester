@@ -15,7 +15,7 @@ from .utils.helpers import AppConfig, BacktestError, open_no_symlink
 from .utils.logger import setup_logger
 from .visualization.plots import generate_backtest_report
 
-logger = setup_logger(__name__, file_path="backtest.log")
+logger = setup_logger(__name__, file_path="main.log")
 
 
 def load_config(config_path: str) -> AppConfig:
@@ -82,7 +82,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    logger.info(
+    logger.debug(
         "CLI args: config=%s, save_plots=%s, display_plots=%s",
         args.config,
         args.save_plots,
@@ -123,7 +123,6 @@ def main() -> None:
             available_symbols,
             {symbol: historical_data[symbol] for symbol in available_symbols},
             strategies,
-            output_dir="reports",
             save_plots=args.save_plots,
             display_plots=args.display_plots,
         )

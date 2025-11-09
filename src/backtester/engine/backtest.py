@@ -12,7 +12,7 @@ from ..strategies.base import BaseStrategy
 from ..utils.helpers import EngineError
 from ..utils.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, file_path="backtest_engine.log")
 
 
 def run_backtest(
@@ -122,7 +122,7 @@ def run_parallel_backtests(
         strategy_params = strategy_config.get("params", {})
         strategies = [strategy_class(strategy_params) for _ in datas]
 
-        logger.info(
+        logger.debug(
             "Running backtests for %s symbols (parallel: %s)",
             len(datas),
             backtest_config["parallel"],
@@ -152,7 +152,7 @@ def run_parallel_backtests(
                     )
                 )
 
-        logger.info("All backtests completed")
+        logger.debug("All backtests completed")
         return results
     except EngineError as error:
         logger.error("Engine error in parallel backtests: %s", error)

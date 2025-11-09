@@ -8,10 +8,6 @@ from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
-from ..utils.logger import setup_logger
-
-logger = setup_logger(__name__)
-
 
 class DataConfig(BaseModel):
     """Configuration for data fetching.
@@ -172,7 +168,8 @@ def get_project_root() -> Path:
         ValueError: If resolution fails (e.g., frozen executable).
     """
     try:
-        # __file__ is the current file; resolve to absolute, go up 3 levels (utils -> backtester -> src -> root)
+        # __file__ is the current file; resolve to absolute,
+        # go up 3 levels (utils -> backtester -> src -> root)
         root = Path(__file__).resolve().parent.parent.parent.parent
         if not root.exists() or not (root / "README.md").exists():
             raise ValueError("Project root detection failed; adjust parent levels.")

@@ -8,8 +8,6 @@ from talib import MACD  # pylint: disable=no-name-in-module
 from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
-logger = setup_logger(__name__)
-
 
 class MACDStrategy(BaseStrategy):
     """
@@ -31,12 +29,13 @@ class MACDStrategy(BaseStrategy):
         :param params: Dictionary of strategy parameters.
         """
         super().__init__(params or {})
+        self.logger = setup_logger(__name__, file_path="macd_strategy.log")
         self.fast_period: int = self.params.get("fast_period", 12)
         self.slow_period: int = self.params.get("slow_period", 26)
         self.signal_period: int = self.params.get("signal_period", 9)
         if self.fast_period >= self.slow_period:
             raise ValueError("Fast period must be less than slow period.")
-        logger.info(
+        self.logger.debug(
             "Initialized MACD with fast=%s, slow=%s, signal=%s",
             self.fast_period,
             self.slow_period,
@@ -69,7 +68,7 @@ class MACDStrategy(BaseStrategy):
         # Diff to detect actual crossovers
         signals = signals.diff().fillna(0).clip(lower=-1, upper=1)
 
-        logger.debug(
+        self.logger.debug(
             "Generated %s signals for %s to %s",
             len(signals),
             data.index[0],

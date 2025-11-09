@@ -8,8 +8,6 @@ from pandas import DataFrame, Series
 from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
-logger = setup_logger(__name__)
-
 
 class MeanReversionStrategy(BaseStrategy):
     """
@@ -31,13 +29,14 @@ class MeanReversionStrategy(BaseStrategy):
         :param params: Dictionary of strategy parameters.
         """
         super().__init__(params or {})
+        self.logger = setup_logger(__name__, file_path="mean_reversion_strategy.log")
         self.window: int = self.params.get("window", 20)
         self.threshold: float = self.params.get("threshold", 2.0)
         if self.window <= 1:
             raise ValueError("Window must be greater than 1.")
         if self.threshold <= 0:
             raise ValueError("Threshold must be positive.")
-        logger.info(
+        self.logger.debug(
             "Initialized MeanReversion with window=%s, threshold=%s",
             self.window,
             self.threshold,
@@ -68,7 +67,7 @@ class MeanReversionStrategy(BaseStrategy):
 
         signals_series = Series(signals, index=data.index).fillna(0)
 
-        logger.debug(
+        self.logger.debug(
             "Generated %s signals for %s to %s",
             len(signals_series),
             data.index[0],

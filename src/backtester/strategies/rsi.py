@@ -7,8 +7,6 @@ from pandas import DataFrame, Series
 from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
-logger = setup_logger(__name__)
-
 
 class RSIStrategy(BaseStrategy):
     """A Relative Strength Index (RSI) trading strategy.
@@ -38,6 +36,7 @@ class RSIStrategy(BaseStrategy):
             ValueError: If the provided parameters are invalid (e.g., period <= 0).
         """
         super().__init__(params or {})
+        self.logger = setup_logger(__name__, file_path="rsi_strategy.log")
         self.period: int = params.get("period", 14)
         self.overbought: int = params.get("overbought", 70)
         self.oversold: int = params.get("oversold", 30)
@@ -49,7 +48,7 @@ class RSIStrategy(BaseStrategy):
         if not (0 <= self.oversold <= 100) or not (0 <= self.overbought <= 100):
             raise ValueError("RSI thresholds must be between 0 and 100")
 
-        logger.info(
+        self.logger.debug(
             "RSI strategy initialized: period=%s, overbought=%s, oversold=%s",
             self.period,
             self.overbought,
@@ -75,11 +74,11 @@ class RSIStrategy(BaseStrategy):
                         if an unexpected error occurs during signal generation.
         """
         if "Adj Close" not in data.columns:
-            logger.error("DataFrame missing 'Adj Close' column")
+            self.logger.error("DataFrame missing 'Adj Close' column")
             raise ValueError("DataFrame must contain 'Adj Close' column")
 
         if len(data) < self.period + 1:
-            logger.warning(
+            self.logger.warning(
                 "Insufficient data for RSI calculation; returning neutral signals"
             )
             return Series(0, index=data.index)
@@ -109,8 +108,8 @@ class RSIStrategy(BaseStrategy):
             signals[rsi < self.oversold] = 1
             signals[rsi > self.overbought] = -1
 
-            logger.debug("Generated %s signals for RSI strategy", len(signals))
+            self.logger.info("Generated %s signals for RSI strategy", len(signals))
             return signals
         except Exception as error:
-            logger.error("Error generating RSI signals: %s", error)
+            self.logger.error("Error generating RSI signals: %s", error)
             raise ValueError(f"Signal generation failed: {error}") from error

@@ -8,8 +8,6 @@ from pandas import DataFrame, Series
 from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
-logger = setup_logger(__name__)
-
 
 class BollingerBandsStrategy(BaseStrategy):
     """
@@ -32,13 +30,14 @@ class BollingerBandsStrategy(BaseStrategy):
         :param params: Dictionary of strategy parameters.
         """
         super().__init__(params or {})
+        self.logger = setup_logger(__name__, file_path="bollinger_bands_strategy.log")
         self.window: int = self.params.get("window", 20)
         self.std_multiplier: float = self.params.get("std_multiplier", 2.0)
         if self.window <= 1:
             raise ValueError("Window must be greater than 1.")
         if self.std_multiplier <= 0:
             raise ValueError("Std multiplier must be positive.")
-        logger.info(
+        self.logger.debug(
             "Initialized BollingerBands with window=%s, std_multiplier=%s",
             self.window,
             self.std_multiplier,
@@ -70,7 +69,7 @@ class BollingerBandsStrategy(BaseStrategy):
         positions_series = Series(positions, index=data.index)
         signals_series = positions_series.diff().fillna(0).clip(lower=-1, upper=1)
 
-        logger.debug(
+        self.logger.debug(
             "Generated %s signals for %s to %s",
             len(signals_series),
             data.index[0],

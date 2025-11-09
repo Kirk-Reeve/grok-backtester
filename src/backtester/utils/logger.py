@@ -1,11 +1,15 @@
 """Utility functions for logging configuration."""
 
-from logging import INFO, FileHandler, Formatter, Logger, StreamHandler, getLogger
+from datetime import datetime
+from logging import DEBUG, FileHandler, Formatter, Logger, StreamHandler, getLogger
+from pathlib import Path
 from typing import Optional
+
+from ..utils.helpers import get_project_root
 
 
 def setup_logger(
-    name: str, level: int = INFO, file_path: Optional[str] = None
+    name: str, level: int = DEBUG, file_path: Optional[str] = None
 ) -> Logger:
     """Sets up a logger with console and optional file output.
 
@@ -39,7 +43,11 @@ def setup_logger(
     # File handler if specified
     if file_path:
         try:
-            file_handler = FileHandler(file_path)
+            project_root = get_project_root()
+            root_folder = Path("logs")
+            sub_folder = root_folder / str(datetime.today().date())
+            (project_root / sub_folder).mkdir(parents=True, exist_ok=True)
+            file_handler = FileHandler(sub_folder / file_path)
             file_handler.setLevel(level)
             file_handler.setFormatter(formatter)
             logger.addHandler(file_handler)

@@ -9,8 +9,6 @@ from ..utils.helpers import StrategyError
 from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
-logger = setup_logger(__name__)
-
 
 class MovingAverageStrategy(BaseStrategy):
     """A simple moving average (SMA) crossover trading strategy.
@@ -39,13 +37,14 @@ class MovingAverageStrategy(BaseStrategy):
                         >= long_window).
         """
         super().__init__(params or {})
+        self.logger = setup_logger(__name__, file_path="moving_average_strategy.log")
         self.short_window: int = params.get("short_window", 50)
         self.long_window: int = params.get("long_window", 200)
 
         if self.short_window >= self.long_window:
             raise ValueError("Short window must be less than long window")
 
-        logger.info(
+        self.logger.debug(
             "Moving Average Strategy initialized: short_window=%s, long_window=%s",
             self.short_window,
             self.long_window,
@@ -74,11 +73,11 @@ class MovingAverageStrategy(BaseStrategy):
                 raise StrategyError("Data missing 'Adj Close' column")
 
             if self.short_window >= self.long_window:
-                logger.warning(
+                self.logger.warning(
                     "Short window >= long window; may lead to invalid signals"
                 )
 
-            logger.debug(
+            self.logger.debug(
                 "Generating signals for %s rows with windows %s/%s",
                 len(data),
                 self.short_window,
@@ -96,11 +95,11 @@ class MovingAverageStrategy(BaseStrategy):
 
             signals = Series(where(short_mavg > long_mavg, 1.0, -1.0), index=data.index)
 
-            logger.debug("Generated %s long signals", signals.sum())
+            self.logger.info("Generated %s long signals", signals.sum())
             return signals
         except StrategyError as error:
-            logger.error("Strategy error: %s", error)
+            self.logger.error("Strategy error: %s", error)
             raise
         except Exception as error:
-            logger.error("Unexpected error in signal generation: %s", error)
+            self.logger.error("Unexpected error in signal generation: %s", error)
             raise StrategyError(f"Signal generation failed: {error}") from error

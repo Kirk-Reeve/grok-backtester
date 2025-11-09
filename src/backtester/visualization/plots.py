@@ -11,7 +11,7 @@ from ..strategies.base import BaseStrategy
 from ..utils.helpers import VisualizationError, get_project_root
 from ..utils.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, file_path="visualization.log")
 
 
 def plot_equity_curve(
@@ -53,7 +53,7 @@ def plot_equity_curve(
             abs_path = abspath(save_path)
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             savefig(save_path)
-            logger.info("Equity curve saved to: %s", abs_path)
+            logger.debug("Equity curve saved to: %s", abs_path)
 
         if display:
             show()
@@ -202,7 +202,6 @@ def generate_backtest_report(
     symbols: List[str],
     data_dict: Dict[str, DataFrame],
     strategies: List[BaseStrategy],
-    output_dir: str = "reports",
     save_plots: bool = True,
     display_plots: bool = False,
 ) -> None:
@@ -214,8 +213,6 @@ def generate_backtest_report(
         data_dict (Dict[str, DataFrame]): A dictionary of historical data
                                              DataFrames.
         strategies (List[BaseStrategy]): A list of strategy instances.
-        output_dir (str): The directory to save the report plots in. Defaults
-                          to 'reports'.
         save_plots (bool): If True, the plots are saved to the output
                            directory. Defaults to True.
         display_plots (bool): If True, the plots are displayed interactively.
@@ -227,7 +224,7 @@ def generate_backtest_report(
     """
     try:
         project_root = get_project_root()
-        abs_output_dir = project_root / output_dir / strategies[0].__class__.__name__
+        abs_output_dir = project_root / "reports" / strategies[0].__class__.__name__
 
         if (
             len(results) != len(symbols)
@@ -237,7 +234,7 @@ def generate_backtest_report(
             raise VisualizationError("Input lengths mismatch")
 
         abs_output_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("Generating report for %s symbols in %s", len(symbols), output_dir)
+        logger.info("Generating report for %s symbols in reports", len(symbols))
 
         for _, (result, symbol, data, strategy) in enumerate(
             zip(results, symbols, data_dict.values(), strategies)
@@ -247,15 +244,15 @@ def generate_backtest_report(
             signals = strategy.generate_signals(data)
 
             equity_path = (
-                str(abs_output_dir / f"{symbol}_equity_curve.png")
+                str(abs_output_dir / symbol / "equity_curve.png")
                 if save_plots
                 else None
             )
             drawdown_path = (
-                str(abs_output_dir / f"{symbol}_drawdown.png") if save_plots else None
+                str(abs_output_dir / symbol / "drawdown.png") if save_plots else None
             )
             signals_path = (
-                str(abs_output_dir / f"{symbol}_signals.png") if save_plots else None
+                str(abs_output_dir / symbol / "signals.png") if save_plots else None
             )
 
             plot_equity_curve(

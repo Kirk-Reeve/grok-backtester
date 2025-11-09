@@ -7,7 +7,7 @@ from yfinance import download  # type: ignore[import-untyped]
 from ..utils.helpers import DataError
 from ..utils.logger import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, file_path="data_fetcher.log")
 
 # Caching setup
 memory = Memory(location="data/cache", verbose=0)
@@ -21,7 +21,7 @@ def clear_data_cache() -> None:
     """
     try:
         memory.clear(warn=False)
-        logger.info("Data cache cleared successfully")
+        logger.debug("Data cache cleared successfully")
     except (OSError, ValueError, ConnectionError) as error:
         logger.error("Failed to clear cache: %s", error)
 
@@ -55,7 +55,7 @@ def _fetch_historical_data_internal(
         )
         if data.empty:
             raise DataError("No data returned from yfinance")
-        logger.info("Fetched data for %s from %s to %s", symbols, start, end)
+        logger.debug("Fetched data for %s from %s to %s", symbols, start, end)
         return data
     except (ValueError, IOError, ConnectionError) as error:
         logger.error("Error fetching data: %s", error)
