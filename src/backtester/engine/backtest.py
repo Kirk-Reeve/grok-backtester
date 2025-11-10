@@ -6,7 +6,7 @@ from joblib import Parallel, delayed  # type: ignore[import-untyped]
 from numpy import abs as _abs
 from pandas import DataFrame
 
-from ..metrics.performance import calculate_metrics
+from ..metrics.performance import PerformanceCalculator
 from ..strategies import STRATEGY_REGISTRY
 from ..strategies.base import BaseStrategy
 from ..utils.helpers import EngineError
@@ -71,7 +71,8 @@ def run_backtest(
         portfolio["holdings"] = positions * portfolio["total"]
         portfolio["cash"] = portfolio["total"] - portfolio["holdings"]
 
-        metrics = calculate_metrics(portfolio)
+        calculator = PerformanceCalculator()
+        metrics = calculator.calculate_metrics(portfolio)
         logger.info(
             "Backtest completed: final value %.2f, Sharpe %.2f",
             portfolio["total"].iloc[-1],
