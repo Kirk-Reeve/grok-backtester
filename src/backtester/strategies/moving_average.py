@@ -2,104 +2,114 @@
 
 from typing import Any, Dict
 
-from numpy import where
 from pandas import DataFrame, Series
 
-from ..utils.helpers import StrategyError
-from ..utils.logger import setup_logger
 from .base import BaseStrategy
 
 
 class MovingAverageStrategy(BaseStrategy):
-    """A simple moving average (SMA) crossover trading strategy.
+    """Moving Average Crossover Strategy.
 
-    This strategy generates trading signals based on the crossover of two SMAs
-    with different time windows: a short-term SMA and a long-term SMA. A long
-    signal (1.0) is generated when the short-term SMA crosses above the
-    long-term SMA, and a short signal (-1.0) is generated when it crosses below.
+    Generates buy signals on short SMA crossover above long SMA,
+    and sell on crossover below. Vectorized with rolling operations.
 
-    The parameters for this strategy are:
-        short_window (int): The number of periods for the short-term SMA.
-                            Defaults to 50.
-        long_window (int): The number of periods for the long-term SMA.
-                           Defaults to 200.
+    Args:
+        params (Dict[str, Any] | None): Dictionary of strategy parameters.
+            - short_window: int - Short SMA period (default: 50)
+            - long_window: int - Long SMA period (default: 200)
+            - price_column: str - DataFrame column for price data (default: "Adj Close")
     """
 
-    def __init__(self, params: Dict[str, Any]):
-        """Initializes the MovingAverageStrategy.
+    default_params = {
+        "short_window": 50,
+        "long_window": 200,
+        "price_column": "Adj Close",
+    }
+
+    required_columns = []  # Custom column check in generate_signals due to fallback
+
+    def _validate_params(self, params: Dict[str, Any]) -> None:
+        """Validate strategy parameters.
 
         Args:
-            params (Dict[str, any]): A dictionary of parameters for configuring
-                                     the strategy.
+            params (Dict[str, Any]): The parameters to validate.
 
         Raises:
-            ValueError: If the provided parameters are invalid (e.g., short_window
-                        >= long_window).
+            ValueError: If parameters are invalid.
         """
-        super().__init__(params or {})
-        self.logger = setup_logger(__name__, file_path="moving_average_strategy.log")
-        self.short_window: int = params.get("short_window", 50)
-        self.long_window: int = params.get("long_window", 200)
+        if params["short_window"] >= params["long_window"]:
+            raise ValueError("Short window must be less than long window.")
 
-        if self.short_window >= self.long_window:
-            raise ValueError("Short window must be less than long window")
+    def __init__(self, params: Dict[str, Any] | None = None):
+        """Initialize the strategy with parameters.
 
-        self.logger.debug(
-            "Moving Average Strategy initialized: short_window=%s, long_window=%s",
-            self.short_window,
-            self.long_window,
-        )
+        Args:
+            params (Dict[str, Any] | None): Dictionary of strategy parameters.
+        """
+        super().__init__(params)
+        # No need for manual assignments; use self.params directly where needed
 
     def generate_signals(self, data: DataFrame) -> Series:
-        """Generates trading signals based on the SMA crossover logic.
+        """Generate trading signals based on SMA crossovers.
+
+        Uses precise detection: buy (1) when short SMA crosses above long SMA,
+        sell (-1) when below. Handles NaNs naturally (signals remain 0 for early bars).
+        Prefers 'Adj Close' but falls back to 'Close' if unavailable.
 
         Args:
-            data (DataFrame): A pandas DataFrame containing the historical
-                                 market data for an asset, including an
-                                 'Adj Close' column.
+            data (DataFrame): DataFrame with price column (e.g., 'Adj Close' or 'Close').
 
         Returns:
-            Series: A pandas Series with the same index as the input data,
-                       containing the trading signals (1.0 for long, -1.0 for
-                       short).
+            Series: Series of signals (1: buy, -1: sell, 0: hold).
 
         Raises:
-            StrategyError: If the input data is missing the 'Adj Close' column
-                           or if an unexpected error occurs during signal
-                           generation.
+            ValueError: If required price column is missing.
         """
-        try:
-            if "Adj Close" not in data.columns:
-                raise StrategyError("Data missing 'Adj Close' column")
+        super().generate_signals(
+            data
+        )  # Calls base validation (no-op since required_columns=[])
 
-            if self.short_window >= self.long_window:
+        # Determine the actual price column to use, with fallback
+        actual_column = self.params["price_column"]
+        if actual_column not in data.columns:
+            if "Close" in data.columns:
+                actual_column = "Close"
                 self.logger.warning(
-                    "Short window >= long window; may lead to invalid signals"
+                    "Preferred price column '%s' not found; falling back to 'Close'. "
+                    "For accurate backtesting, use adjusted prices if available.",
+                    self.params["price_column"],
+                )
+            else:
+                raise ValueError(
+                    f"DataFrame must contain '{self.params['price_column']}' or 'Close' column."
                 )
 
-            self.logger.debug(
-                "Generating signals for %s rows with windows %s/%s",
-                len(data),
-                self.short_window,
-                self.long_window,
-            )
+        # Calculate rolling SMAs vectorized
+        prices = data[actual_column]
+        short_sma = prices.rolling(window=self.params["short_window"]).mean()
+        long_sma = prices.rolling(window=self.params["long_window"]).mean()
 
-            short_mavg = (
-                data["Adj Close"]
-                .rolling(window=self.short_window, min_periods=1)
-                .mean()
-            )
-            long_mavg = (
-                data["Adj Close"].rolling(window=self.long_window, min_periods=1).mean()
-            )
+        # Detect crossovers precisely
+        # Buy: previous short <= long and current short > long
+        cross_up = (short_sma > long_sma) & (short_sma.shift(1) <= long_sma.shift(1))
+        # Sell: previous short >= long and current short < long
+        cross_down = (short_sma < long_sma) & (short_sma.shift(1) >= long_sma.shift(1))
 
-            signals = Series(where(short_mavg > long_mavg, 1.0, -1.0), index=data.index)
+        # Generate signals: 1 for buy, -1 for sell, 0 otherwise
+        signals = Series(
+            0, index=data.index, dtype="int8"
+        )  # int8 for memory efficiency
+        signals[cross_up] = 1
+        signals[cross_down] = -1
 
-            self.logger.info("Generated %s long signals", signals.sum())
-            return signals
-        except StrategyError as error:
-            self.logger.error("Strategy error: %s", error)
-            raise
-        except Exception as error:
-            self.logger.error("Unexpected error in signal generation: %s", error)
-            raise StrategyError(f"Signal generation failed: {error}") from error
+        # Log summary (avoid logging full series for large data)
+        self.logger.debug(
+            "Generated %d signals (%d buys, %d sells) for period %s to %s using column '%s'",
+            len(signals),
+            (signals == 1).sum(),
+            (signals == -1).sum(),
+            data.index[0],
+            data.index[-1],
+            actual_column,
+        )
+        return signals
