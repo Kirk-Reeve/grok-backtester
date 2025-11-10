@@ -104,7 +104,7 @@ class BaseStrategy(ABC):
             raise ValueError(
                 f"DataFrame missing required columns: {', '.join(missing_cols)}"
             )
-        return Series(0, index=data.index, dtype="int8")  # Default neutral signals
+        raise NotImplementedError("Subclasses must implement generate_signals")
 
     def get_name(self) -> str:
         """Get the name of the strategy.
