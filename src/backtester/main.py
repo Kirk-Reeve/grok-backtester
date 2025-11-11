@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from .data.fetcher import fetch_historical_data
 from .engine.backtest import run_parallel_backtests
+from .optimization.grid_search import GridSearchOptimizer  # New import for optimizer
 from .strategies import STRATEGY_REGISTRY
 from .utils.helpers import AppConfig, BacktestError, open_no_symlink
 from .utils.logger import setup_logger
@@ -53,14 +54,20 @@ def main() -> None:
     """The main entry point for the backtester application.
 
     This function handles command-line argument parsing, loads the
-    configuration, fetches historical data, runs the backtest, and
-    generates a report.
+    configuration, optionally runs parameter optimization, fetches historical data,
+    runs the backtest, and generates a report.
     """
     parser = argparse.ArgumentParser(
         description="Advanced Python Share Trading Strategy Backtester"
     )
     parser.add_argument(
         "--config", type=str, default="config/config.yaml", help="Path to config YAML"
+    )
+    parser.add_argument(
+        "--optimize",
+        action="store_true",
+        default=False,
+        help="Run grid search optimization before backtest (default: False)",
     )
     parser.add_argument(
         "--save-plots",
@@ -83,8 +90,9 @@ def main() -> None:
     args = parser.parse_args()
 
     logger.debug(
-        "CLI args: config=%s, save_plots=%s, display_plots=%s",
+        "CLI args: config=%s, optimize=%s, save_plots=%s, display_plots=%s",
         args.config,
+        args.optimize,
         args.save_plots,
         args.display_plots,
     )
@@ -94,7 +102,7 @@ def main() -> None:
         data_config = config.data
         strategy_config = config.strategy
         backtest_config = config.backtest
-
+        optimization_config = config.optimization
         historical_data = fetch_historical_data(
             data_config.symbols, data_config.start_date, data_config.end_date
         )
@@ -108,6 +116,35 @@ def main() -> None:
         datas: List[pd.DataFrame] = [
             historical_data[symbol] for symbol in available_symbols
         ]
+
+        # Optional: Run grid search optimization
+        if args.optimize:
+            if not optimization_config.param_grid:
+                raise BacktestError("Optimization enabled but no param_grid in config.")
+
+            logger.info(
+                "Starting grid search optimization for strategy '%s'.",
+                strategy_config.type,
+            )
+            optimizer = GridSearchOptimizer(
+                strategy_type=strategy_config.type,
+                param_grid=optimization_config.param_grid,
+                objective_metric=optimization_config.objective_metric,
+                data=historical_data,
+                backtest_config=backtest_config.model_dump(),
+                risk_free_rate=optimization_config.risk_free_rate,
+                max_workers=optimization_config.max_workers,
+                verbose=True,
+            )
+            best_params, best_score = optimizer.optimize()
+            logger.info(
+                "Optimization complete. Best params: %s (score: %.4f). Updating strategy.",
+                best_params,
+                best_score,
+            )
+
+            # Update strategy_config with best params for final backtest
+            strategy_config.params = best_params
 
         strategy_class = STRATEGY_REGISTRY.get(strategy_config.type)
         if not strategy_class:

@@ -77,6 +77,22 @@ class BacktestConfig(BaseModel):
     parallel: bool
 
 
+class OptimizationConfig(BaseModel):
+    """Configuration for the backtest optimizer.
+
+    Attributes:
+        param_grid (Dict[str, List[Any]]): Grid of parameters to search
+        objective_metric (str): Metric to optimize.
+        risk_free_rate (float): Risk-free rate for metrics.
+        max_workers (Optional[int]): Max parallel workers.
+    """
+
+    param_grid: Dict[str, List[Any]]
+    objective_metric: str
+    risk_free_rate: float
+    max_workers: int | None
+
+
 class AppConfig(BaseModel):
     """Root configuration for the backtester application.
 
@@ -89,6 +105,7 @@ class AppConfig(BaseModel):
     data: DataConfig
     strategy: StrategyConfig
     backtest: BacktestConfig
+    optimization: OptimizationConfig
 
 
 class BacktestError(Exception):

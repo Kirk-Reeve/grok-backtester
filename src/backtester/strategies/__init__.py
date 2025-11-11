@@ -11,6 +11,7 @@ from .momentum import MomentumStrategy
 from .moving_average import MovingAverageStrategy
 from .parabolic_sar import ParabolicSARStrategy
 from .rsi import RSIStrategy
+from .rsi_v2 import EnhancedRSIStrategy
 from .stochastic import StochasticStrategy
 
 STRATEGY_REGISTRY: Dict[str, type[BaseStrategy]] = {
@@ -23,4 +24,5 @@ STRATEGY_REGISTRY: Dict[str, type[BaseStrategy]] = {
     "commodity_channel_index": CCIStrategy,
     "parabolic_sar": ParabolicSARStrategy,
     "stochastic": StochasticStrategy,
+    "enhanced_rsi": EnhancedRSIStrategy,
 }
