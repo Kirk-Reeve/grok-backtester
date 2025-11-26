@@ -1,18 +1,26 @@
-# Default configuration
 data:
   source: yfinance
-  symbols: [AAPL, MSFT]  # Example stocks
-  start_date: "2020-01-01"
-  end_date: "2025-11-01"
+  symbols: [NVDA]
+  start_date: "2015-11-24"
+  end_date: "2025-11-24"
   cache_dir: ../data/cache
 
 optimization:
   param_grid:
-    short_window: [10, 20, 30, 40, 50]
-    long_window: [100, 150, 200, 250, 300]
-  objective_metric: "sharpe_ratio"
-  risk_free_rate: 0.0
-  max_workers: 4
+    conversion_period: [7, 9, 11]  # Narrow around standard 9 for sensitivity tuning
+    base_period: [24, 26, 28]  # Around 26; key for cloud shift
+    leading_span_b_period: [50, 52, 54]  # Around 52; affects cloud thickness
+    lagging_span_period: [24, 26, 28]  # Around 26; for Chikou confirmation
+    atr_period: [12, 14, 16]  # Around 14; standard for volatility
+    sl_multiplier: [1.5, 2.0, 2.5]  # Risk control; start from 1.0 for tighter stops
+    tp_multiplier: [2.0, 2.5, 3.0]  # Reward; aim for R:R >1
+    kumo_threshold_multiplier: [0.005, 0.01, 0.015]  # Filter thin clouds (0.5-1.5% of price)
+    macd_fast_period: [10, 12, 14]  # Tune for momentum sensitivity
+    macd_slow_period: [24, 26, 28]  # Align with base_period
+    macd_signal_period: [7, 9, 11]  # For signal smoothness
+  objective_metric: "sharpe_ratio"  # Primary; or "calmar_ratio" for drawdown focus
+  risk_free_rate: 0.02  # Realistic (e.g., 2% avg T-bill; adjust per period)
+  max_workers: 4  # Parallel cores; scale to machine
 
 backtest:
   initial_capital: 100000
@@ -20,11 +28,26 @@ backtest:
   slippage: 0.0005  # 0.05% slippage per trade
   parallel: true  # Use parallel processing for multiple symbols
 
-strategy:
-  type: moving_average
+strategy: 
+  type: enhanced_ichimoku
   params:
-    short_window: 50
-    long_window: 200
+    conversion_period: 9  # Narrow around standard 9 for sensitivity tuning
+    base_period: 26  # Around 26; key for cloud shift
+    leading_span_b_period: 50  # Around 52; affects cloud thickness
+    lagging_span_period: 28  # Around 26; for Chikou confirmation
+    atr_period: 16  # Around 14; standard for volatility
+    sl_multiplier: 2.5  # Risk control; start from 1.0 for tighter stops
+    tp_multiplier: 3.0  # Reward; aim for R:R >1
+    kumo_threshold_multiplier: 0.015  # Filter thin clouds (0.5-1.5% of price)
+    macd_fast_period: 12  # Tune for momentum sensitivity
+    macd_slow_period: 24  # Align with base_period
+    macd_signal_period: 11  # For signal smoothness
+
+# strategy:
+#   type: moving_average
+#   params:
+#     short_window: 50
+#     long_window: 200
 
 # strategy: 
 #   type: momentum

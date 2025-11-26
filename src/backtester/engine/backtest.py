@@ -56,6 +56,7 @@ def run_backtest(
         signals = strategy.generate_signals(data)
 
         positions = signals.shift(1).fillna(0)
+        logger.debug("Final recommended position: %s", positions.iloc[-1])
         asset_returns = data["Adj Close"].pct_change().fillna(0)
         strategy_returns = positions * asset_returns
 

@@ -5,6 +5,7 @@ from typing import Dict
 from .base import BaseStrategy
 from .bollinger_bands import BollingerBandsStrategy
 from .commodity_channel_index import CCIStrategy
+from .itchimoku_cloud import EnhancedIchimokuStrategy
 from .macd import MACDStrategy
 from .mean_reversion import MeanReversionStrategy
 from .momentum import MomentumStrategy
@@ -25,4 +26,5 @@ STRATEGY_REGISTRY: Dict[str, type[BaseStrategy]] = {
     "parabolic_sar": ParabolicSARStrategy,
     "stochastic": StochasticStrategy,
     "enhanced_rsi": EnhancedRSIStrategy,
+    "enhanced_ichimoku": EnhancedIchimokuStrategy,
 }
